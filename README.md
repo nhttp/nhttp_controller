@@ -5,13 +5,13 @@ Micro routing controller for Deno with decorator support.
 ## Installation
 ### deno.land
 ```ts
-import { Get } from "https://deno.land/x/nhttp_controller@0.0.2/mod.ts";
+import { Get } from "https://deno.land/x/nhttp_controller@0.0.3/mod.ts";
 ```
 
 ### nest.land
 ```ts
 // Well soon
-// import { Get } from "https://x.nest.land/nhttp_controller@0.0.2/mod.ts";
+// import { Get } from "https://x.nest.land/nhttp_controller@0.0.3/mod.ts";
 ```
 
 ## Usage
@@ -23,9 +23,7 @@ import {
     Get,
     Post,
     Status 
-} from "https://deno.land/x/nhttp_controller@0.0.2/mod.ts";
-
-const app = new NHttp();
+} from "https://deno.land/x/nhttp_controller@0.0.3/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -46,6 +44,8 @@ class HelloController {
         return body || 'body parser is required';
     }
 }
+
+const app = new NHttp();
 
 app.use('/api', addControllers([HelloController]));
 

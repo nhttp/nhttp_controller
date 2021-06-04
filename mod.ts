@@ -118,7 +118,6 @@ export function Controller(path: string = "") {
       c_routes.push(obj[k]);
     }
     target.prototype.c_routes = c_routes;
-    delete target.prototype["methods"];
   };
 }
 
@@ -162,13 +161,6 @@ class AddController extends Router {
     }
     this.c_routes = routes;
   }
-}
-
-export function nControllerInit(): Handler {
-  return (rev, next) => {
-    rev.responseInit = {};
-    next();
-  };
 }
 
 export const addControllers = (controllers: { new (...args: any): any }[]) =>

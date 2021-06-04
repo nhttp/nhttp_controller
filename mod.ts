@@ -151,8 +151,8 @@ async function withPromise(
   return retBody(body, rev);
 }
 
-class AddController extends Router {
-  constructor(arr: { new (): any }[]) {
+class AddControllers extends Router {
+  constructor(arr: { new (...args: any): any }[]) {
     super();
     let i = 0, len = arr.length, routes = this.c_routes;
     while (i < len) {
@@ -164,4 +164,4 @@ class AddController extends Router {
 }
 
 export const addControllers = (controllers: { new (...args: any): any }[]) =>
-  new AddController(controllers);
+  new AddControllers(controllers);

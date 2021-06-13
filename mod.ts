@@ -5,7 +5,8 @@ import {
   NextFunction,
   RequestEvent,
   Router,
-} from "https://deno.land/x/nhttp@0.1.1/mod.ts";
+  multipart,
+} from "https://deno.land/x/nhttp@0.2.0/mod.ts";
 
 type TStatus<
   Rev extends RequestEvent = RequestEvent,
@@ -20,6 +21,16 @@ type THeaders<
   rev: Rev,
   next: NextFunction,
 ) => { [k: string]: any };
+
+type TMultipartUpload = {
+  name: string;
+  maxCount?: number;
+  maxSize?: number | string;
+  accept?: string;
+  callback?: (file: File & { filename: string }) => void;
+  dest?: string;
+  required?: boolean;
+};
 
 function findFns(arr: any[]): any[] {
   let ret = [] as any, i = 0, len = arr.length;
@@ -53,6 +64,13 @@ function addMethod(method: string, path: string = "") {
   };
 }
 
+export function Upload(options: TMultipartUpload) {
+  return (target: any, prop: string, des: PropertyDescriptor) => {
+    target["methods"] = joinTargetMethod(target, prop, [multipart.upload(options)]);
+    return des;
+  };
+}
+
 export function Wares<
   Rev extends RequestEvent = RequestEvent,
 >(...middlewares: Handlers<Rev>) {
@@ -66,7 +84,6 @@ export function Wares<
 export function Status(status: number | TStatus) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const statusFn: Handler = (rev, next) => {
-      rev.responseInit = rev.responseInit || {};
       rev.responseInit.status = typeof status === "function"
         ? status(rev, next)
         : status;
@@ -81,8 +98,7 @@ export function Header(header: { [k: string]: any } | THeaders) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const headerFn: Handler = (rev, next) => {
       let obj = typeof header === "function" ? header(rev, next) : header;
-      rev.responseInit = rev.responseInit || {};
-      let headers = rev.responseInit.headers || new Headers();
+      let headers = (rev.responseInit.headers || new Headers()) as Headers;
       for (const key in obj) headers.set(key, obj[key]);
       rev.responseInit.headers = headers;
       next();
@@ -155,10 +171,7 @@ class AddControllers extends Router {
   constructor(arr: { new (...args: any): any }[]) {
     super();
     let i = 0, len = arr.length, routes = this.c_routes;
-    while (i < len) {
-      routes = routes.concat(arr[i].prototype.c_routes);
-      ++i;
-    }
+    while (i < len) routes = routes.concat(arr[i++].prototype.c_routes);
     this.c_routes = routes;
   }
 }

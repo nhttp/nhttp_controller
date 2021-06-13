@@ -1,0 +1,19 @@
+{
+  "$schema": "https://x.nest.land/eggs@0.3.6/src/schema.json",
+  "name": "nhttp_controller",
+  "entry": "./mod.ts",
+  "description": "Micro routing controller for Deno with decorator support.",
+  "homepage": "https://github.com/nhttp/nhttp_controller",
+  "version": "0.2.0",
+  "files": [
+    "./mod.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "ignore": [],
+  "checkFormat": false,
+  "checkTests": false,
+  "checkInstallation": false,
+  "check": true,
+  "unlisted": false
+}

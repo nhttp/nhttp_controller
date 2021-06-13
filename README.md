@@ -5,13 +5,12 @@ Micro routing controller for Deno with decorator support.
 ## Installation
 ### deno.land
 ```ts
-import { Get } from "https://deno.land/x/nhttp_controller@0.0.4/mod.ts";
+import { Get } from "https://deno.land/x/nhttp_controller@0.2.0/mod.ts";
 ```
 
 ### nest.land
 ```ts
-// Well soon
-// import { Get } from "https://x.nest.land/nhttp_controller@0.0.4/mod.ts";
+import { Get } from "https://x.nest.land/nhttp_controller@0.2.0/mod.ts";
 ```
 
 ## Usage
@@ -23,7 +22,7 @@ import {
     Get,
     Post,
     Status 
-} from "https://deno.land/x/nhttp_controller@0.0.4/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.2.0/mod.ts";
 
 @Controller("/hello")
 class HelloController {
@@ -141,6 +140,29 @@ class HelloController {
     @Get()
     hello({ foo }: RequestEvent) {
         return foo;
+    }
+}
+...
+```
+### Upload
+@Upload(options).
+
+Realtion to [multipart](https://github.com/nhttp/nhttp#multipart)
+```ts
+...
+@Controller("/hello")
+class HelloController {
+
+    @Upload({
+        name: 'image',
+        required: true,
+        maxSize: '2mb'
+    })
+    @Post()
+    hello({ body, file }: RequestEvent) {
+        console.log(file)
+        console.log(body)
+        return 'Success upload';
     }
 }
 ...

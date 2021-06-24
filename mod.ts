@@ -2,11 +2,13 @@ import {
   Handler,
   Handlers,
   JsonResponse,
+  multipart,
   NextFunction,
   RequestEvent,
   Router,
-  multipart,
-} from "https://deno.land/x/nhttp@0.2.0/mod.ts";
+} from "https://deno.land/x/nhttp@0.2.9/mod.ts";
+
+import { contentType } from "https://deno.land/x/media_types@v2.7.1/mod.ts";
 
 type TStatus<
   Rev extends RequestEvent = RequestEvent,
@@ -21,6 +23,13 @@ type THeaders<
   rev: Rev,
   next: NextFunction,
 ) => { [k: string]: any };
+
+type TString<
+  Rev extends RequestEvent = RequestEvent,
+> = (
+  rev: Rev,
+  next: NextFunction,
+) => string;
 
 type TMultipartUpload = {
   name: string;
@@ -52,6 +61,8 @@ function addMethod(method: string, path: string = "") {
   return (target: any, prop: string, des: PropertyDescriptor) => {
     const ori = des.value;
     des.value = function (...args: any[]) {
+      target["rev"] = args[0];
+      target["next"] = args[1];
       let result = ori.apply(target, args);
       return result;
     };
@@ -64,9 +75,22 @@ function addMethod(method: string, path: string = "") {
   };
 }
 
+export function View(name: string | TString) {
+  return (target: any, prop: string, des: PropertyDescriptor) => {
+    const viewFn: Handler = (rev, next) => {
+      rev.___view = typeof name === "function" ? name(rev, next) : name;
+      next();
+    };
+    target["methods"] = joinTargetMethod(target, prop, [viewFn]);
+    return des;
+  };
+}
+
 export function Upload(options: TMultipartUpload) {
   return (target: any, prop: string, des: PropertyDescriptor) => {
-    target["methods"] = joinTargetMethod(target, prop, [multipart.upload(options)]);
+    target["methods"] = joinTargetMethod(target, prop, [
+      multipart.upload(options),
+    ]);
     return des;
   };
 }
@@ -90,6 +114,20 @@ export function Status(status: number | TStatus) {
       next();
     };
     target["methods"] = joinTargetMethod(target, prop, [statusFn]);
+    return des;
+  };
+}
+
+export function Type(name: string | TString) {
+  return (target: any, prop: string, des: PropertyDescriptor) => {
+    const typeFn: Handler = (rev, next) => {
+      let value = typeof name === "function" ? name(rev, next) : name;
+      rev.response.type(
+        contentType(value) || value,
+      );
+      next();
+    };
+    target["methods"] = joinTargetMethod(target, prop, [typeFn]);
     return des;
   };
 }
@@ -150,6 +188,9 @@ function retBody(body: any, rev: RequestEvent) {
     ) {
       return send(body);
     }
+    if (rev.___view && rev.response.view) {
+      return rev.response.view(rev.___view, body as any);
+    }
     return json(body);
   }
   return void 0;
@@ -178,3 +219,11 @@ class AddControllers extends Router {
 
 export const addControllers = (controllers: { new (...args: any): any }[]) =>
   new AddControllers(controllers);
+
+export class BaseController<
+  Rev extends RequestEvent = RequestEvent,
+> {
+  rev!: Rev;
+  next!: NextFunction;
+  [k: string]: any
+}

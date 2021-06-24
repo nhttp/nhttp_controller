@@ -5,27 +5,28 @@ Micro routing controller for Deno with decorator support.
 ## Installation
 ### deno.land
 ```ts
-import { Get } from "https://deno.land/x/nhttp_controller@0.2.0/mod.ts";
+import {...} from "https://deno.land/x/nhttp_controller@0.2.1/mod.ts";
 ```
 
 ### nest.land
 ```ts
-import { Get } from "https://x.nest.land/nhttp_controller@0.2.0/mod.ts";
+import {...} from "https://x.nest.land/nhttp_controller@0.2.1/mod.ts";
 ```
 
 ## Usage
 ```ts
-import { NHttp, RequestEvent } from "https://deno.land/x/nhttp/mod.ts";
+import { NHttp } from "https://deno.land/x/nhttp@{version}/mod.ts";
 import { 
+    BaseController, 
     addControllers, 
     Controller, 
     Get,
     Post,
     Status 
-} from "https://deno.land/x/nhttp_controller@0.2.0/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.2.1/mod.ts";
 
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get()
     findAll() {
@@ -33,22 +34,27 @@ class HelloController {
     }
 
     @Get("/:id")
-    findById({ params }: RequestEvent) {
-        return params.id;
+    findById() {
+        const { params } = this.rev;
+        return params;
     }
 
     @Status(201)
     @Post()
-    save({ body }: RequestEvent) {
-        return body || 'body parser is required';
+    save() {
+        const { body } = this.rev;
+        return body;
     }
 }
 
-const app = new NHttp();
+class App extends NHttp {
+    constructor(){
+        super();
+        this.use('/api', addControllers([HelloController]));
+    }
+}
 
-app.use('/api', addControllers([HelloController]));
-
-app.listen(3000);
+await new App().listen(3000);
 ```
 
 ## Decorator
@@ -57,7 +63,7 @@ app.listen(3000);
 ```ts
 ...
 @Controller("/hello")
-class HelloController {...}
+class HelloController extends BaseController {...}
 ...
 ```
 
@@ -67,7 +73,7 @@ class HelloController {...}
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Get()
     hello() {
@@ -82,7 +88,7 @@ class HelloController {
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Status(201)
     @Post()
@@ -107,7 +113,7 @@ class HelloController {
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Header({ "Content-Type": "text/html" })
     @Get()
@@ -126,19 +132,53 @@ class HelloController {
 }
 ...
 ```
+### Type
+@Type(contentType:string | (rev, next) => string).
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @Type("html")
+    @Get()
+    hello() {
+        return "<h1>Hello</h1>";
+    }
+}
+...
+```
+### View
+@View(name: string | (rev, next) => string).
+> requires [viewEngine](https://github.com/nhttp/nhttp_view)
+```ts
+...
+@Controller("/hello")
+class HelloController extends BaseController {
+
+    @View("index")
+    @Get()
+    hello() {
+        return {
+            title: "Page Title"
+        };
+    }
+}
+...
+```
 ### Middlewares
 @Wares(...middlewares).
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Wares((rev, next) => {
         rev.foo = "foo";
         next();
     })
     @Get()
-    hello({ foo }: RequestEvent) {
+    hello() {
+        const { foo } = this.rev;
         return foo;
     }
 }
@@ -147,11 +187,11 @@ class HelloController {
 ### Upload
 @Upload(options).
 
-Realtion to [multipart](https://github.com/nhttp/nhttp#multipart)
+Relation to [multipart](https://github.com/nhttp/nhttp#multipart)
 ```ts
 ...
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Upload({
         name: 'image',
@@ -159,7 +199,8 @@ class HelloController {
         maxSize: '2mb'
     })
     @Post()
-    hello({ body, file }: RequestEvent) {
+    hello() {
+        const { body, file } = this.rev;
         console.log(file)
         console.log(body)
         return 'Success upload';
@@ -186,7 +227,7 @@ class HelloService {
 }
 
 @Controller("/hello")
-class HelloController {
+class HelloController extends BaseController {
 
     @Inject(HelloService)
     private readonly service!: HelloService;
@@ -198,7 +239,8 @@ class HelloController {
 
     @Status(201)
     @Post()
-    save({ body }: RequestEvent) {
+    save() {
+        const { body } = this.rev;
         return this.service.save(body);
     }
 }

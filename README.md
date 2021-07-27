@@ -1,16 +1,17 @@
 ## NHttp Controller
 Micro routing controller for Deno with decorator support.
 > limited to [nhttp](https://github.com/nhttp/nhttp) only.
+> requires nhttp version 0.8.0 or higher.
 
 ## Installation
 ### deno.land
 ```ts
-import {...} from "https://deno.land/x/nhttp_controller@0.2.1/mod.ts";
+import {...} from "https://deno.land/x/nhttp_controller@0.3.0/mod.ts";
 ```
 
 ### nest.land
 ```ts
-import {...} from "https://x.nest.land/nhttp_controller@0.2.1/mod.ts";
+import {...} from "https://x.nest.land/nhttp_controller@0.3.0/mod.ts";
 ```
 
 ## Usage
@@ -23,7 +24,7 @@ import {
     Get,
     Post,
     Status 
-} from "https://deno.land/x/nhttp_controller@0.2.1/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.3.0/mod.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {

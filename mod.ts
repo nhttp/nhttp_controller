@@ -5,9 +5,9 @@ import {
   NextFunction,
   RequestEvent,
   Router,
-} from "https://deno.land/x/nhttp@0.8.0/mod.ts";
+} from "https://deno.land/x/nhttp@1.1.5/mod.ts";
 
-import { contentType } from "https://deno.land/x/media_types@v2.7.1/mod.ts";
+import { contentType } from "https://deno.land/x/media_types@v2.11.1/mod.ts";
 
 type TStatus<
   Rev extends RequestEvent = RequestEvent,
@@ -17,7 +17,7 @@ type TStatus<
 ) => number;
 
 // deno-lint-ignore no-explicit-any
-type TObject = { [k: string]: any };
+type TObject = Record<string, any>;
 type THeaders<
   Rev extends RequestEvent = RequestEvent,
 > = (
@@ -41,50 +41,35 @@ type TMultipartUpload = {
   dest?: string;
   required?: boolean;
 };
-// deno-lint-ignore no-explicit-any
-function findFns(arr: any[]): any[] {
-  // deno-lint-ignore no-explicit-any
-  let ret = [] as any, i = 0;
-  const len = arr.length;
-  for (; i < len; i++) {
-    if (Array.isArray(arr[i])) ret = ret.concat(findFns(arr[i]));
-    else if (typeof arr[i] === "function") ret.push(arr[i]);
-  }
-  return ret;
-}
 
-// deno-lint-ignore no-explicit-any
-function joinTargetMethod(target: any, prop: string, arr: any[]) {
+function joinTargetMethod(target: TObject, prop: string, arr: TObject[]) {
   const obj = target["methods"] || {};
   obj[prop] = obj[prop] || {};
-  obj[prop].handlers = arr.concat(obj[prop].handlers || []);
+  obj[prop].fns = arr.concat(obj[prop].fns || []);
   return obj;
 }
 
 function addMethod(method: string, path?: string) {
   path = path || "";
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const ori = des.value;
-    // deno-lint-ignore no-explicit-any
-    des.value = function (...args: any[]) {
-      target["rev"] = args[0];
+    des.value = function (...args: TObject[]) {
+      target["requestEvent"] = args[0];
       target["next"] = args[1];
       const result = ori.apply(target, args);
       return result;
     };
     const obj = target["methods"] || {};
     obj[prop] = obj[prop] || {};
-    const handlers = (obj[prop].handlers || []).concat([des.value]);
-    obj[prop] = { path, method, handlers };
+    const fns = (obj[prop].fns || []).concat([des.value]);
+    obj[prop] = { path, method, fns };
     target["methods"] = obj;
     return des;
   };
 }
 
 export function View(name: string | TString) {
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const viewFn: Handler = (rev, next) => {
       rev.___view = typeof name === "function" ? name(rev, next) : name;
       next();
@@ -95,8 +80,7 @@ export function View(name: string | TString) {
 }
 
 export function Upload(options: TMultipartUpload) {
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
     target["methods"] = joinTargetMethod(target, prop, [
       multipart.upload(options),
     ]);
@@ -107,17 +91,14 @@ export function Upload(options: TMultipartUpload) {
 export function Wares<
   Rev extends RequestEvent = RequestEvent,
 >(...middlewares: Handlers<Rev>) {
-  const fns = findFns(middlewares);
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
-    target["methods"] = joinTargetMethod(target, prop, fns);
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
+    target["methods"] = joinTargetMethod(target, prop, middlewares.flat());
     return des;
   };
 }
 
 export function Status(status: number | TStatus) {
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const statusFn: Handler = (rev, next) => {
       rev.response.status(
         typeof status === "function" ? status(rev, next) : status,
@@ -130,8 +111,7 @@ export function Status(status: number | TStatus) {
 }
 
 export function Type(name: string | TString) {
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const typeFn: Handler = (rev, next) => {
       const value = typeof name === "function" ? name(rev, next) : name;
       rev.response.type(
@@ -145,8 +125,7 @@ export function Type(name: string | TString) {
 }
 
 export function Header(header: TObject | THeaders) {
-  // deno-lint-ignore no-explicit-any
-  return (target: any, prop: string, des: PropertyDescriptor) => {
+  return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const headerFn: Handler = (rev, next) => {
       rev.response.header(
         typeof header === "function" ? header(rev, next) : header,
@@ -159,8 +138,7 @@ export function Header(header: TObject | THeaders) {
 }
 // deno-lint-ignore no-explicit-any
 export function Inject(value: any, ...args: any) {
-  // deno-lint-ignore no-explicit-any
-  return function (target: any, prop: string) {
+  return function (target: TObject, prop: string) {
     target[prop] = typeof value === "function" ? new value(...args) : value;
   };
 }
@@ -177,13 +155,17 @@ export const Connect = (path?: string) => addMethod("CONNECT", path || "");
 export const Patch = (path?: string) => addMethod("PATCH", path || "");
 
 export function Controller(path?: string) {
-  // deno-lint-ignore no-explicit-any
-  return (target: any) => {
-    // deno-lint-ignore no-explicit-any
-    const cRoutes = [] as any[];
+  return (target: TObject) => {
+    const cRoutes = [] as TObject[];
     const obj = target.prototype["methods"];
     for (const k in obj) {
       if (path) obj[k].path = path + obj[k].path;
+      if (obj[k].path.startsWith("//")) {
+        obj[k].path = obj[k].path.substring(1);
+      }
+      if (obj[k].path !== "/" && obj[k].path.endsWith("/")) {
+        obj[k].path = obj[k].path.slice(0, -1);
+      }
       cRoutes.push(obj[k]);
     }
     target.prototype.c_routes = cRoutes;
@@ -207,7 +189,7 @@ export const addControllers = (controllers: { new (...args: any): any }[]) =>
 export class BaseController<
   Rev extends RequestEvent = RequestEvent,
 > {
-  rev!: Rev;
+  requestEvent!: Rev;
   next!: NextFunction;
   // deno-lint-ignore no-explicit-any
   [k: string]: any

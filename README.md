@@ -1,66 +1,74 @@
 ## NHttp Controller
+
 Micro routing controller for Deno with decorator support.
-> limited to [nhttp](https://github.com/nhttp/nhttp) only.
-> requires nhttp version 0.8.0 or higher.
+
+> limited to [nhttp](https://github.com/nhttp/nhttp) only. requires nhttp
+> version 1.1.5 or higher.
 
 ## Installation
+
 ### deno.land
+
 ```ts
-import {...} from "https://deno.land/x/nhttp_controller@0.3.0/mod.ts";
+import {...} from "https://deno.land/x/nhttp_controller@0.4.0/mod.ts";
 ```
 
 ### nest.land
+
 ```ts
-import {...} from "https://x.nest.land/nhttp_controller@0.3.0/mod.ts";
+import {...} from "https://x.nest.land/nhttp_controller@0.4.0/mod.ts";
 ```
 
 ## Usage
+
 ```ts
 import { NHttp } from "https://deno.land/x/nhttp@{version}/mod.ts";
-import { 
-    BaseController, 
-    addControllers, 
-    Controller, 
-    Get,
-    Post,
-    Status 
-} from "https://deno.land/x/nhttp_controller@0.3.0/mod.ts";
+import {
+  addControllers,
+  BaseController,
+  Controller,
+  Get,
+  Post,
+  Status,
+} from "https://deno.land/x/nhttp_controller@0.4.0/mod.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {
+  @Get()
+  findAll() {
+    return { name: "john" };
+  }
 
-    @Get()
-    findAll() {
-        return { name: 'john' };
-    }
+  @Get("/:id")
+  findById() {
+    const { params } = this.requestEvent;
+    return params;
+  }
 
-    @Get("/:id")
-    findById() {
-        const { params } = this.rev;
-        return params;
-    }
-
-    @Status(201)
-    @Post()
-    save() {
-        const { body } = this.rev;
-        return body;
-    }
+  @Status(201)
+  @Post()
+  save() {
+    const { body } = this.requestEvent;
+    return body;
+  }
 }
 
 class App extends NHttp {
-    constructor(){
-        super();
-        this.use('/api', addControllers([HelloController]));
-    }
+  constructor() {
+    super();
+    this.use("/api", addControllers([HelloController]));
+  }
 }
 
 await new App().listen(3000);
 ```
 
 ## Decorator
+
 ### Controller
+
 @Controller(path?: string).
+
 ```ts
 ...
 @Controller("/hello")
@@ -69,8 +77,12 @@ class HelloController extends BaseController {...}
 ```
 
 ### Method
+
 @METHOD(path?: string).
-> Support => @Get, @Post, @Put, @Delete, @Patch, @Head, @Options, @Any, @Trace, @Connect.
+
+> Support => @Get, @Post, @Put, @Delete, @Patch, @Head, @Options, @Any, @Trace,
+> @Connect.
+
 ```ts
 ...
 @Controller("/hello")
@@ -85,7 +97,9 @@ class HelloController extends BaseController {
 ```
 
 ### Status
+
 @Status(code: number | (rev, next) => number).
+
 ```ts
 ...
 @Controller("/hello")
@@ -110,7 +124,9 @@ class HelloController extends BaseController {
 ```
 
 ### Header
+
 @Header(object | (rev, next) => object).
+
 ```ts
 ...
 @Controller("/hello")
@@ -133,8 +149,11 @@ class HelloController extends BaseController {
 }
 ...
 ```
+
 ### Type
+
 @Type(contentType:string | (rev, next) => string).
+
 ```ts
 ...
 @Controller("/hello")
@@ -148,9 +167,13 @@ class HelloController extends BaseController {
 }
 ...
 ```
+
 ### View
+
 @View(name: string | (rev, next) => string).
+
 > requires [viewEngine](https://github.com/nhttp/nhttp_view)
+
 ```ts
 ...
 @Controller("/hello")
@@ -166,8 +189,11 @@ class HelloController extends BaseController {
 }
 ...
 ```
+
 ### Middlewares
+
 @Wares(...middlewares).
+
 ```ts
 ...
 @Controller("/hello")
@@ -175,20 +201,23 @@ class HelloController extends BaseController {
 
     @Wares((rev, next) => {
         rev.foo = "foo";
-        next();
+        return next();
     })
     @Get()
     hello() {
-        const { foo } = this.rev;
+        const { foo } = this.requestEvent;
         return foo;
     }
 }
 ...
 ```
+
 ### Upload
+
 @Upload(options).
 
 Relation to [multipart](https://github.com/nhttp/nhttp#multipart)
+
 ```ts
 ...
 @Controller("/hello")
@@ -201,7 +230,7 @@ class HelloController extends BaseController {
     })
     @Post()
     hello() {
-        const { body, file } = this.rev;
+        const { body, file } = this.requestEvent;
         console.log(file)
         console.log(body)
         return 'Success upload';
@@ -209,8 +238,11 @@ class HelloController extends BaseController {
 }
 ...
 ```
-### Inject 
+
+### Inject
+
 @Inject(value: any, ...args: any).
+
 ```ts
 ...
 
@@ -241,19 +273,22 @@ class HelloController extends BaseController {
     @Status(201)
     @Post()
     save() {
-        const { body } = this.rev;
+        const { body } = this.requestEvent;
         return this.service.save(body);
     }
 }
 ...
 ```
-### addControllers 
+
+### addControllers
+
 addControllers(classControllers: class[]).
+
 ```ts
 ...
 app.use(addControllers([HelloController, OtherController]));
 app.use('/api/v1', addControllers([HelloController, OtherController]));
-app.use('/api/v1', middleware(), addControllers([HelloController, OtherController]));
+app.use('/api/v1', middlewares, addControllers([HelloController, OtherController]));
 ...
 ```
 

@@ -88,10 +88,10 @@ class HelloController extends BaseController {...}
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Get()
-    hello() {
-        return "hello";
-    }
+  @Get()
+  hello() {
+    return "hello";
+  }
 }
 ...
 ```
@@ -105,20 +105,20 @@ class HelloController extends BaseController {
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Status(201)
-    @Post()
-    save() {
-        return "Created";
-    }
+  @Status(201)
+  @Post()
+  save() {
+    return "Created";
+  }
 
-    @Status((rev) => {
-        // logic here
-        return 200;
-    })
-    @Put('/:id')
-    update() {
-        return "Updated";
-    }
+  @Status((rev) => {
+    // logic here
+    return 200;
+  })
+  @Put('/:id')
+  update() {
+    return "Updated";
+  }
 }
 ...
 ```
@@ -132,20 +132,20 @@ class HelloController extends BaseController {
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Header({ "Content-Type": "text/html" })
-    @Get()
-    hello() {
-        return "<h1>Hello</h1>";
-    }
+  @Header({ "Content-Type": "text/html" })
+  @Get()
+  hello() {
+    return "<h1>Hello</h1>";
+  }
 
-    @Header((rev) => {
-        let type = rev.url.includes(".css") ? "text/css" : "text/plain";
-        return { "Content-Type": type };
-    })
-    @Get()
-    hello2() {
-        return Deno.readFile('./path/to/file');
-    }
+  @Header((rev) => {
+    let type = rev.url.includes(".css") ? "text/css" : "text/plain";
+    return { "Content-Type": type };
+  })
+  @Get()
+  hello2() {
+    return Deno.readFile('./path/to/file');
+  }
 }
 ...
 ```
@@ -159,33 +159,11 @@ class HelloController extends BaseController {
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Type("html")
-    @Get()
-    hello() {
-        return "<h1>Hello</h1>";
-    }
-}
-...
-```
-
-### View
-
-@View(name: string | (rev, next) => string).
-
-> requires [viewEngine](https://github.com/nhttp/nhttp_view)
-
-```ts
-...
-@Controller("/hello")
-class HelloController extends BaseController {
-
-    @View("index")
-    @Get()
-    hello() {
-        return {
-            title: "Page Title"
-        };
-    }
+  @Type("html")
+  @Get()
+  hello() {
+    return "<h1>Hello</h1>";
+  }
 }
 ...
 ```
@@ -199,15 +177,15 @@ class HelloController extends BaseController {
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Wares((rev, next) => {
-        rev.foo = "foo";
-        return next();
-    })
-    @Get()
-    hello() {
-        const { foo } = this.requestEvent;
-        return foo;
-    }
+  @Wares((rev, next) => {
+    rev.foo = "foo";
+    return next();
+  })
+  @Get()
+  hello() {
+    const { foo } = this.requestEvent;
+    return foo;
+  }
 }
 ...
 ```
@@ -223,18 +201,18 @@ Relation to [multipart](https://github.com/nhttp/nhttp#multipart)
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Upload({
-        name: 'image',
-        required: true,
-        maxSize: '2mb'
-    })
-    @Post()
-    hello() {
-        const { body, file } = this.requestEvent;
-        console.log(file)
-        console.log(body)
-        return 'Success upload';
-    }
+  @Upload({
+    name: 'image',
+    required: true,
+    maxSize: '2mb'
+  })
+  @Post()
+  hello() {
+    const { body, file } = this.requestEvent;
+    console.log(file)
+    console.log(body)
+    return 'Success upload';
+  }
 }
 ...
 ```
@@ -248,34 +226,34 @@ class HelloController extends BaseController {
 
 class HelloService {
 
-    async findAll() {
-        const data = await db.findAll();
-        return { data, status: 200 }; 
-    }
+  async findAll() {
+    const data = await db.findAll();
+    return { data, status: 200 }; 
+  }
 
-    async save(body) {
-        await db.save(body);
-        return { message: 'success save', status: 201 }; 
-    }
+  async save(body) {
+    await db.save(body);
+    return { message: 'success save', status: 201 }; 
+  }
 }
 
 @Controller("/hello")
 class HelloController extends BaseController {
 
-    @Inject(HelloService)
-    private readonly service!: HelloService;
+  @Inject(HelloService)
+  private readonly service!: HelloService;
 
-    @Get()
-    findAll() {
-        return this.service.findAll();
-    }
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
 
-    @Status(201)
-    @Post()
-    save() {
-        const { body } = this.requestEvent;
-        return this.service.save(body);
-    }
+  @Status(201)
+  @Post()
+  save() {
+    const { body } = this.requestEvent;
+    return this.service.save(body);
+  }
 }
 ...
 ```

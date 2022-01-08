@@ -185,8 +185,9 @@ class AddControllers extends Router {
   }
 }
 // deno-lint-ignore no-explicit-any
-export const addControllers = (controllers: { new (...args: any): any }[]) =>
-  new AddControllers(controllers) as Router;
+export const addControllers: any = (
+  controllers: { new (...args: any): any }[],
+) => new AddControllers(controllers);
 
 export class BaseController<
   Rev extends RequestEvent = RequestEvent,

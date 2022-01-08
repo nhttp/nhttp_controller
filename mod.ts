@@ -71,8 +71,10 @@ function addMethod(method: string, path?: string) {
 export function View(name: string | TString) {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const viewFn: Handler = (rev, next) => {
-      rev.___view = typeof name === "function" ? name(rev, next) : name;
-      next();
+      const index = typeof name === "function" ? name(rev, next) : name;
+      const fns = target["methods"][prop]["fns"];
+      const body = fns[fns.length - 1](rev, next);
+      return rev.response.view(index, typeof body === "object" ? body : {});
     };
     target["methods"] = joinTargetMethod(target, prop, [viewFn]);
     return des;
@@ -103,7 +105,7 @@ export function Status(status: number | TStatus) {
       rev.response.status(
         typeof status === "function" ? status(rev, next) : status,
       );
-      next();
+      return next();
     };
     target["methods"] = joinTargetMethod(target, prop, [statusFn]);
     return des;
@@ -117,7 +119,7 @@ export function Type(name: string | TString) {
       rev.response.type(
         contentType(value) || value,
       );
-      next();
+      return next();
     };
     target["methods"] = joinTargetMethod(target, prop, [typeFn]);
     return des;
@@ -130,7 +132,7 @@ export function Header(header: TObject | THeaders) {
       rev.response.header(
         typeof header === "function" ? header(rev, next) : header,
       );
-      next();
+      return next();
     };
     target["methods"] = joinTargetMethod(target, prop, [headerFn]);
     return des;
@@ -184,7 +186,7 @@ class AddControllers extends Router {
 }
 // deno-lint-ignore no-explicit-any
 export const addControllers = (controllers: { new (...args: any): any }[]) =>
-  new AddControllers(controllers);
+  new AddControllers(controllers) as Router;
 
 export class BaseController<
   Rev extends RequestEvent = RequestEvent,

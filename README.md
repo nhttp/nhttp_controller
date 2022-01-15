@@ -3,20 +3,20 @@
 Micro routing controller for Deno with decorator support.
 
 > limited to [nhttp](https://github.com/nhttp/nhttp) only. requires nhttp
-> version 1.1.5 or higher.
+> version 1.1.7 or higher.
 
 ## Installation
 
 ### deno.land
 
 ```ts
-import {...} from "https://deno.land/x/nhttp_controller@0.6.0/mod.ts";
+import {...} from "https://deno.land/x/nhttp_controller@0.7.0/mod.ts";
 ```
 
 ### nest.land
 
 ```ts
-import {...} from "https://x.nest.land/nhttp_controller@0.6.0/mod.ts";
+import {...} from "https://x.nest.land/nhttp_controller@0.7.0/mod.ts";
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ import {
   Get,
   Post,
   Status,
-} from "https://deno.land/x/nhttp_controller@0.6.0/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.7.0/mod.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {
@@ -60,7 +60,7 @@ class App extends NHttp {
   }
 }
 
-await new App().listen(3000);
+new App().listen(3000);
 ```
 
 ## Decorator

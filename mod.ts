@@ -5,7 +5,9 @@ import {
   NextFunction,
   RequestEvent,
   Router,
-} from "https://deno.land/x/nhttp@1.1.5/mod.ts";
+} from "https://deno.land/x/nhttp@1.1.7/mod.ts";
+
+import { concatRegexp } from "https://deno.land/x/nhttp@1.1.7/src/utils.ts";
 
 import { contentType } from "https://deno.land/x/media_types@v2.11.1/mod.ts";
 
@@ -49,8 +51,7 @@ function joinTargetMethod(target: TObject, prop: string, arr: TObject[]) {
   return obj;
 }
 
-function addMethod(method: string, path?: string) {
-  path = path || "";
+function addMethod(method: string, path?: string | RegExp) {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const ori = des.value;
     des.value = function (...args: TObject[]) {
@@ -145,28 +146,35 @@ export function Inject(value: any, ...args: any) {
   };
 }
 
-export const Get = (path?: string) => addMethod("GET", path || "");
-export const Post = (path?: string) => addMethod("POST", path || "");
-export const Put = (path?: string) => addMethod("PUT", path || "");
-export const Delete = (path?: string) => addMethod("DELETE", path || "");
-export const Any = (path?: string) => addMethod("ANY", path || "");
-export const Options = (path?: string) => addMethod("OPTIONS", path || "");
-export const Head = (path?: string) => addMethod("HEAD", path || "");
-export const Trace = (path?: string) => addMethod("TRACE", path || "");
-export const Connect = (path?: string) => addMethod("CONNECT", path || "");
-export const Patch = (path?: string) => addMethod("PATCH", path || "");
+export const Get = (path?: string | RegExp) => addMethod("GET", path || "");
+export const Post = (path?: string | RegExp) => addMethod("POST", path || "");
+export const Put = (path?: string | RegExp) => addMethod("PUT", path || "");
+export const Delete = (path?: string | RegExp) =>
+  addMethod("DELETE", path || "");
+export const Any = (path?: string | RegExp) => addMethod("ANY", path || "");
+export const Options = (path?: string | RegExp) =>
+  addMethod("OPTIONS", path || "");
+export const Head = (path?: string | RegExp) => addMethod("HEAD", path || "");
+export const Trace = (path?: string | RegExp) => addMethod("TRACE", path || "");
+export const Connect = (path?: string | RegExp) =>
+  addMethod("CONNECT", path || "");
+export const Patch = (path?: string | RegExp) => addMethod("PATCH", path || "");
 
 export function Controller(path?: string) {
   return (target: TObject) => {
     const cRoutes = [] as TObject[];
     const obj = target.prototype["methods"];
     for (const k in obj) {
-      if (path) obj[k].path = path + obj[k].path;
-      if (obj[k].path.startsWith("//")) {
-        obj[k].path = obj[k].path.substring(1);
-      }
-      if (obj[k].path !== "/" && obj[k].path.endsWith("/")) {
-        obj[k].path = obj[k].path.slice(0, -1);
+      if (obj[k].path instanceof RegExp) {
+        obj[k].path = concatRegexp(path || "", obj[k].path);
+      } else {
+        if (path) obj[k].path = path + obj[k].path;
+        if (obj[k].path.startsWith("//")) {
+          obj[k].path = obj[k].path.substring(1);
+        }
+        if (obj[k].path !== "/" && obj[k].path.endsWith("/")) {
+          obj[k].path = obj[k].path.slice(0, -1);
+        }
       }
       cRoutes.push(obj[k]);
     }

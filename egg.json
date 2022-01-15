@@ -4,7 +4,7 @@
   "entry": "./mod.ts",
   "description": "Micro routing controller for Deno with decorator support.",
   "homepage": "https://github.com/nhttp/nhttp_controller",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "files": [
     "./mod.ts",
     "LICENSE",

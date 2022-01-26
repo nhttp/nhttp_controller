@@ -5,11 +5,16 @@ import {
   NextFunction,
   RequestEvent,
   Router,
-} from "https://deno.land/x/nhttp@1.1.7/mod.ts";
-
-import { concatRegexp } from "https://deno.land/x/nhttp@1.1.7/src/utils.ts";
-
+} from "https://deno.land/x/nhttp@1.1.9/mod.ts";
+import { concatRegexp } from "https://deno.land/x/nhttp@1.1.9/src/utils.ts";
 import { contentType } from "https://deno.land/x/media_types@v2.11.1/mod.ts";
+import { TObject, TRet } from "https://deno.land/x/nhttp@1.1.9/src/types.ts";
+
+declare global {
+  interface Window {
+    NHttpMetadata: TRet;
+  }
+}
 
 type TStatus<
   Rev extends RequestEvent = RequestEvent,
@@ -18,8 +23,6 @@ type TStatus<
   next: NextFunction,
 ) => number;
 
-// deno-lint-ignore no-explicit-any
-type TObject = Record<string, any>;
 type THeaders<
   Rev extends RequestEvent = RequestEvent,
 > = (
@@ -40,18 +43,41 @@ type TMultipartUpload = {
   maxSize?: number | string;
   accept?: string;
   callback?: (file: File & { filename: string }) => void;
-  dest?: string;
+  dest: string;
   required?: boolean;
 };
 
-function joinTargetMethod(target: TObject, prop: string, arr: TObject[]) {
-  const obj = target["methods"] || {};
+export function addRoute(
+  className: string,
+  prop: string,
+  handler: Handler,
+  opts: { path?: string | RegExp; method: string },
+) {
+  window.NHttpMetadata = window.NHttpMetadata || {};
+  const metadata = window.NHttpMetadata;
+  metadata[className] = metadata[className] || {};
+  const obj = metadata[className]["route"] || {};
   obj[prop] = obj[prop] || {};
-  obj[prop].fns = arr.concat(obj[prop].fns || []);
-  return obj;
+  const fns = (obj[prop].fns || []).concat([handler]);
+  obj[prop] = { path: opts.path, method: opts.method, fns };
+  metadata[className]["route"] = obj;
 }
 
-function addMethod(method: string, path?: string | RegExp) {
+export function joinHandlers<Rev extends RequestEvent = RequestEvent>(
+  className: TRet,
+  prop: string,
+  arr: Handler<Rev>[],
+) {
+  window.NHttpMetadata = window.NHttpMetadata || {};
+  const metadata = window.NHttpMetadata;
+  metadata[className] = metadata[className] || {};
+  const obj = metadata[className]["route"] || {};
+  obj[prop] = obj[prop] || {};
+  obj[prop].fns = arr.concat(obj[prop].fns || []);
+  metadata[className]["route"] = obj;
+}
+
+export function addMethod(method: string, path?: string | RegExp) {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
     const ori = des.value;
     des.value = function (...args: TObject[]) {
@@ -60,11 +86,8 @@ function addMethod(method: string, path?: string | RegExp) {
       const result = ori.apply(target, args);
       return result;
     };
-    const obj = target["methods"] || {};
-    obj[prop] = obj[prop] || {};
-    const fns = (obj[prop].fns || []).concat([des.value]);
-    obj[prop] = { path, method, fns };
-    target["methods"] = obj;
+    const className = target.constructor.name;
+    addRoute(className, prop, des.value, { path, method });
     return des;
   };
 }
@@ -77,16 +100,16 @@ export function View(name: string | TString) {
       const body = fns[fns.length - 1](rev, next);
       return rev.response.view(index, typeof body === "object" ? body : {});
     };
-    target["methods"] = joinTargetMethod(target, prop, [viewFn]);
+    const className = target.constructor.name;
+    joinHandlers(className, prop, [viewFn]);
     return des;
   };
 }
 
 export function Upload(options: TMultipartUpload) {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    target["methods"] = joinTargetMethod(target, prop, [
-      multipart.upload(options),
-    ]);
+    const className = target.constructor.name;
+    joinHandlers(className, prop, [multipart.upload(options)]);
     return des;
   };
 }
@@ -95,7 +118,8 @@ export function Wares<
   Rev extends RequestEvent = RequestEvent,
 >(...middlewares: Handlers<Rev>) {
   return (target: TObject, prop: string, des: PropertyDescriptor) => {
-    target["methods"] = joinTargetMethod(target, prop, middlewares.flat());
+    const className = target.constructor.name;
+    joinHandlers(className, prop, middlewares.flat());
     return des;
   };
 }
@@ -108,7 +132,8 @@ export function Status(status: number | TStatus) {
       );
       return next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [statusFn]);
+    const className = target.constructor.name;
+    joinHandlers(className, prop, [statusFn]);
     return des;
   };
 }
@@ -122,7 +147,8 @@ export function Type(name: string | TString) {
       );
       return next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [typeFn]);
+    const className = target.constructor.name;
+    joinHandlers(className, prop, [typeFn]);
     return des;
   };
 }
@@ -135,12 +161,13 @@ export function Header(header: TObject | THeaders) {
       );
       return next();
     };
-    target["methods"] = joinTargetMethod(target, prop, [headerFn]);
+    const className = target.constructor.name;
+    joinHandlers(className, prop, [headerFn]);
     return des;
   };
 }
-// deno-lint-ignore no-explicit-any
-export function Inject(value: any, ...args: any) {
+
+export function Inject(value: TRet, ...args: TRet) {
   return function (target: TObject, prop: string) {
     target[prop] = typeof value === "function" ? new value(...args) : value;
   };
@@ -163,7 +190,8 @@ export const Patch = (path?: string | RegExp) => addMethod("PATCH", path || "");
 export function Controller(path?: string) {
   return (target: TObject) => {
     const cRoutes = [] as TObject[];
-    const obj = target.prototype["methods"];
+    const className = target.name;
+    const obj = window.NHttpMetadata[className]["route"];
     for (const k in obj) {
       if (obj[k].path instanceof RegExp) {
         obj[k].path = concatRegexp(path || "", obj[k].path);
@@ -183,8 +211,7 @@ export function Controller(path?: string) {
 }
 
 class AddControllers extends Router {
-  // deno-lint-ignore no-explicit-any
-  constructor(arr: { new (...args: any): any }[]) {
+  constructor(arr: { new (...args: TRet): TRet }[]) {
     super();
     let i = 0, routes = this.c_routes;
     const len = arr.length;
@@ -192,9 +219,8 @@ class AddControllers extends Router {
     this.c_routes = routes;
   }
 }
-// deno-lint-ignore no-explicit-any
-export const addControllers: any = (
-  controllers: { new (...args: any): any }[],
+export const addControllers: TRet = (
+  controllers: { new (...args: TRet): TRet }[],
 ) => new AddControllers(controllers);
 
 export class BaseController<
@@ -202,6 +228,5 @@ export class BaseController<
 > {
   requestEvent!: Rev;
   next!: NextFunction;
-  // deno-lint-ignore no-explicit-any
-  [k: string]: any
+  [k: string]: TRet
 }

@@ -10,13 +10,13 @@ Micro routing controller for Deno with decorator support.
 ### deno.land
 
 ```ts
-import {...} from "https://deno.land/x/nhttp_controller@0.7.0/mod.ts";
+import {...} from "https://deno.land/x/nhttp_controller@0.8.0/mod.ts";
 ```
 
 ### nest.land
 
 ```ts
-import {...} from "https://x.nest.land/nhttp_controller@0.7.0/mod.ts";
+import {...} from "https://x.nest.land/nhttp_controller@0.8.0/mod.ts";
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ import {
   Get,
   Post,
   Status,
-} from "https://deno.land/x/nhttp_controller@0.7.0/mod.ts";
+} from "https://deno.land/x/nhttp_controller@0.8.0/mod.ts";
 
 @Controller("/hello")
 class HelloController extends BaseController {
